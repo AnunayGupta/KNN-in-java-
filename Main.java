@@ -1,5 +1,7 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.lang.reflect.Array;
+import java.sql.SQLOutput;
 import java.util.*;
 
 
@@ -33,7 +35,6 @@ public class Main {
                     // Can be avoided by using a constructor
                     s.fruit_label = Integer.valueOf(values.get(0));
                     s.fruit_name = values.get(1);
-                    s.fruit_subtype = values.get(2);
                     s.mass = Float.valueOf(values.get(3));
                     m.add(s.mass) ;
                     s.width = Float.valueOf(values.get(4));
@@ -42,33 +43,33 @@ public class Main {
                     h.add(s.height);
                     s.color_score = Float.valueOf(values.get(6));
                     c.add(s.color_score) ;
-                    switch (s.fruit_subtype) {
+                    switch (values.get(2)) {
                         case "granny_smith":
-                            s.granny_smith = 1;
+                            s.sub = Fruits.subtype.GRANNY_SMITH ;
                             break;
                         case "mandarin":
-                            s.mandarin = 1;
+                            s.sub = Fruits.subtype.MANDARIN ;
                             break;
                         case "braeburn":
-                            s.braeburn = 1;
+                            s.sub = Fruits.subtype.BRAEBURN ;
                             break;
                         case "golden_delicious":
-                            s.golden_delicious = 1;
+                            s.sub = Fruits.subtype.GOLDEN_DELICIOUS ;
                             break;
                         case "cripps_pink":
-                            s.cripps_pink = 1;
+                            s.sub = Fruits.subtype.CRIPPS_PINK;
                             break;
                         case "spanish_jumbo":
-                            s.spanish_jumbo = 1;
+                            s.sub = Fruits.subtype.SPANISH_JUMBO;
                             break;
                         case "selected_seconds":
-                            s.selected_seconds = 1;
+                            s.sub = Fruits.subtype.SELECTED_SECONDS ;
                             break;
                         case "turkey_navel":
-                            s.turkey_navel = 1;
+                            s.sub = Fruits.subtype.TURKEY_NAVEL ;
                             break;
                         case "spanish_belsan":
-                            s.spanish_belsan = 1;
+                            s.sub = Fruits.subtype.SPANISH_BELSON;
                             break;
                     }
                     fruits.add(s);
@@ -113,7 +114,7 @@ public class Main {
         o.width = (8.3f-minw)/(maxw-minw)  ;
         o.height = (7.2f-minh)/(maxh - minh)  ;
         o.color_score = (.54f-minc)/(maxc-minc);
-        o.granny_smith = 1 ;
+        o.sub = Fruits.subtype.GRANNY_SMITH ;
         o.fruit_label = 3;
         o.fruit_name = "orange" ;
         String j = predict(fruits_train,o,4,hm) ;
@@ -121,14 +122,21 @@ public class Main {
 
     }
     public static int KNN(ArrayList <Fruits> fruits_train ,int k,Fruits f){
-        for(int i = 0 ; i < fruits_train.size();i++){
-            Fruits a = fruits_train.get(i);
-            float dis = distance(a,f) ;
-            a.distance = dis ;
-            fruits_train.set(i,a) ;
+        ArrayList<Float> f1 = getfeature(f) ;
+        for(int i = 0 ; i < fruits_train.size() ; i++){
+            ArrayList<Float> f2 = getfeature(fruits_train.get(i));
+            float dis = distance(f1,f2) ;
+            Fruits x = fruits_train.get(i) ;
+            x.distance = dis ;
+            fruits_train.set(i,x) ;
+            //System.out.println(fruits_train.get(i).distance + "  " +fruits_train.get(i).fruit_name );
         }
         Collections.sort(fruits_train,Fruits.disscomparator);
         ArrayList<Integer> fruits_final = new ArrayList<>() ;
+        for(int i = 0; i < k ; i++)
+        {
+            fruits_final.add(fruits_train.get(i).fruit_label) ;
+        }
         for(int i = 0; i < k ; i++)
         {
             fruits_final.add(fruits_train.get(i).fruit_label) ;
@@ -162,13 +170,13 @@ public class Main {
         }
         return element ;
     }
-    public static float distance(Fruits f, Fruits g)
+    public static float distance(ArrayList <Float> f1 , ArrayList <Float> f2)
     {
-        float sq = (float) Math.sqrt(Math.pow((f.mass - g.mass), 2) + Math.pow((f.height - g.height), 2) + Math.pow((f.width - g.width), 2) + Math.pow((f.color_score - g.color_score),2)
-                + Math.pow((f.mandarin-g.mandarin),2) + Math.pow((f.granny_smith - g.granny_smith),2) + Math.pow((f.braeburn-g.braeburn),2) +Math.pow((f.golden_delicious-g.golden_delicious),2)
-                +Math.pow((f.cripps_pink-g.cripps_pink),2)+Math.pow((f.spanish_jumbo-g.spanish_jumbo),2)+Math.pow((f.selected_seconds-g.selected_seconds),2)+Math.pow((f.turkey_navel-g.turkey_navel),2)
-                +Math.pow((f.spanish_belsan-g.spanish_belsan),2));
-        return sq;
+        float sum = 0f ;
+        for(int i = 0 ; i < f1.size();i++){
+            sum += Math.pow((f1.get(i) - f2.get(i)),2) ;
+        }
+        return sum ;
     }
     public static int [][] confusion(ArrayList <Fruits> fruits_test,ArrayList <Fruits> fruits_train){
         int[][] confusion_matrix = new int[4][4];
@@ -184,7 +192,30 @@ public class Main {
         String val = hm.get(res) ;
         return val ;
     }
+    public static ArrayList<Float> getfeature(Fruits s){
+        ArrayList<Float> q  = new ArrayList<>() ;
+        q.add(s.mass) ;
+        q.add(s.width) ;
+        q.add(s.height) ;
+        q.add(s.color_score) ;
+        int k  = s.sub.getvalue() - 1 ;
+        for(int i = 0 ; i < 9 ; i++){
+            if(i == k){
+                q.add(1f) ;
+            }
+            else{
+                q.add(0f) ;
+            }
+
+        }
+        return q ;
+    }
 }
+
+
+
+
+
 
 
 
