@@ -8,10 +8,7 @@ import java.util.*;
 public class Main {
     public static void main(String[] args) {
         HashMap<Integer,String> hm = new HashMap<Integer,String>() ;
-        hm.put(1,"apple") ;
-        hm.put(2,"mandarin") ;
-        hm.put(3,"orange") ;
-        hm.put(4,"lemon") ;
+        HashMap<String , Integer> Enum = new HashMap<String,Integer>() ;
         String file = "/Users/anunay/Desktop/Python/couese_3/fruits.csv";
         String delimiter = "\t";
         String line;
@@ -20,21 +17,30 @@ public class Main {
         ArrayList<Float> w = new ArrayList<>() ;
         ArrayList<Float> h = new ArrayList<>() ;
         ArrayList<Float> c = new ArrayList<>() ;
+        int countdiff = 1;
         int counter = 0;
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            while ((line = br.readLine()) != null) {
+            while ((line = br.readLine()) != null)
+            {
                 List<String> values = Arrays.asList(line.split(delimiter));
                 if (counter == 0) {
                     counter++;
                     continue;
-                } else {
-                    if (values.get(2).equals("unknown")) {
+                }
+                else
+                {
+                    if (values.get(2).equals("unknown"))
+                    {
                         values.set(2, "spanish_belsan");
                     }
                     Fruits s = new Fruits();
                     // Can be avoided by using a constructor
                     s.fruit_label = Integer.valueOf(values.get(0));
                     s.fruit_name = values.get(1);
+                    if(!hm.containsKey(values.get(1)))
+                    {
+                        hm.put(s.fruit_label,values.get(1)) ;
+                    }
                     s.mass = Float.valueOf(values.get(3));
                     m.add(s.mass) ;
                     s.width = Float.valueOf(values.get(4));
@@ -43,34 +49,11 @@ public class Main {
                     h.add(s.height);
                     s.color_score = Float.valueOf(values.get(6));
                     c.add(s.color_score) ;
-                    switch (values.get(2)) {
-                        case "granny_smith":
-                            s.sub = Fruits.subtype.GRANNY_SMITH ;
-                            break;
-                        case "mandarin":
-                            s.sub = Fruits.subtype.MANDARIN ;
-                            break;
-                        case "braeburn":
-                            s.sub = Fruits.subtype.BRAEBURN ;
-                            break;
-                        case "golden_delicious":
-                            s.sub = Fruits.subtype.GOLDEN_DELICIOUS ;
-                            break;
-                        case "cripps_pink":
-                            s.sub = Fruits.subtype.CRIPPS_PINK;
-                            break;
-                        case "spanish_jumbo":
-                            s.sub = Fruits.subtype.SPANISH_JUMBO;
-                            break;
-                        case "selected_seconds":
-                            s.sub = Fruits.subtype.SELECTED_SECONDS ;
-                            break;
-                        case "turkey_navel":
-                            s.sub = Fruits.subtype.TURKEY_NAVEL ;
-                            break;
-                        case "spanish_belsan":
-                            s.sub = Fruits.subtype.SPANISH_BELSON;
-                            break;
+                    s.sub1 = values.get(2) ;
+                    if(!Enum.containsKey(s.sub1))
+                    {
+                        Enum.put(s.sub1,countdiff) ;
+                        countdiff++ ;
                     }
                     fruits.add(s);
                 }
@@ -86,12 +69,13 @@ public class Main {
         Float minh = Collections.min(h) ;
         Float minw = Collections.min(w) ;
         Float minc = Collections.min(c) ;
-        Collections.shuffle(fruits,new Random(0));
+        Collections.shuffle(fruits,new Random(2));
         ArrayList<Fruits> fruits_train = new ArrayList<>();
         ArrayList<Fruits> fruits_test = new ArrayList<>();
         //scaling
         for (int i = 0; i < fruits.size(); i++) {
             Fruits f = fruits.get(i) ;
+            //f.labeled = Enum.get(f.sub1) ;
             f.mass = (f.mass - minm)/(maxm - minm) ;
             f.width = (f.width - minw)/(maxw - minw) ;
             f.height = (f.height - minh)/(maxh - minh) ;
@@ -102,9 +86,9 @@ public class Main {
             else fruits_test.add(fruits.get(i));
         }
         //Accuracy confusion matrix etc ;
-        int[][] confusion_matrix = confusion(fruits_test,fruits_train) ;
-        for(int i = 0 ; i < 4 ; i++){
-            for(int j = 0 ; j < 4 ; j++){
+        int[][] confusion_matrix = confusion(fruits_test,fruits_train,Enum) ;
+        for(int i = 0 ; i < hm.size() ; i++){
+            for(int j = 0 ; j < hm.size() ; j++){
                 System.out.print(confusion_matrix[i][j]+" ");
             }
             System.out.print("\n");
@@ -114,17 +98,17 @@ public class Main {
         o.width = (8.3f-minw)/(maxw-minw)  ;
         o.height = (7.2f-minh)/(maxh - minh)  ;
         o.color_score = (.54f-minc)/(maxc-minc);
-        o.sub = Fruits.subtype.GRANNY_SMITH ;
+        o.sub1 = "granny_smith";
         o.fruit_label = 3;
         o.fruit_name = "orange" ;
-        String j = predict(fruits_train,o,4,hm) ;
+        String j = predict(fruits_train,o,4,hm,Enum) ;
         System.out.println(j);
 
     }
-    public static int KNN(ArrayList <Fruits> fruits_train ,int k,Fruits f){
-        ArrayList<Float> f1 = getfeature(f) ;
+    public static int KNN(ArrayList <Fruits> fruits_train ,int k,Fruits f,HashMap<String,Integer> Enum){
+        ArrayList<Float> f1 = getfeature(f,Enum) ;
         for(int i = 0 ; i < fruits_train.size() ; i++){
-            ArrayList<Float> f2 = getfeature(fruits_train.get(i));
+            ArrayList<Float> f2 = getfeature(fruits_train.get(i),Enum);
             float dis = distance(f1,f2) ;
             Fruits x = fruits_train.get(i) ;
             x.distance = dis ;
@@ -178,28 +162,28 @@ public class Main {
         }
         return sum ;
     }
-    public static int [][] confusion(ArrayList <Fruits> fruits_test,ArrayList <Fruits> fruits_train){
+    public static int [][] confusion(ArrayList <Fruits> fruits_test,ArrayList <Fruits> fruits_train,HashMap<String,Integer> Enum){
         int[][] confusion_matrix = new int[4][4];
         for(int j = 0 ; j < fruits_test.size() ; j++){
             int expected_res = fruits_test.get(j).fruit_label ;
-            int result = KNN(fruits_train,4,fruits_test.get(j));
+            int result = KNN(fruits_train,4,fruits_test.get(j),Enum);
             confusion_matrix[expected_res-1][result-1]++ ;
         }
         return confusion_matrix ;
     }
-    public static String predict(ArrayList <Fruits> fruits_train ,Fruits f , int k,HashMap<Integer,String> hm){
-        int res = KNN(fruits_train,k,f) ;
+    public static String predict(ArrayList <Fruits> fruits_train ,Fruits f , int k,HashMap<Integer,String> hm,HashMap<String,Integer> Enum){
+        int res = KNN(fruits_train,k,f,Enum) ;
         String val = hm.get(res) ;
         return val ;
     }
-    public static ArrayList<Float> getfeature(Fruits s){
+    public static ArrayList<Float> getfeature(Fruits s,HashMap<String,Integer> Enum){
         ArrayList<Float> q  = new ArrayList<>() ;
         q.add(s.mass) ;
         q.add(s.width) ;
         q.add(s.height) ;
         q.add(s.color_score) ;
-        int k  = s.sub.getvalue() - 1 ;
-        for(int i = 0 ; i < 9 ; i++){
+        int k  = Enum.get(s.sub1)-1 ;
+        for(int i = 0 ; i < Enum.size() ; i++){
             if(i == k){
                 q.add(1f) ;
             }
@@ -211,9 +195,6 @@ public class Main {
         return q ;
     }
 }
-
-
-
 
 
 
