@@ -31,7 +31,7 @@ public class Main {
                 {
                     if (values.get(2).equals("unknown"))
                     {
-                        values.set(2, "spanish_belsan");
+                        values.set(2,hm.get(values.get(0)));
                     }
                     Fruits s = new Fruits();
                     // Can be avoided by using a constructor
